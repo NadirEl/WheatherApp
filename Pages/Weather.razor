@@ -1,0 +1,55 @@
+﻿@page "/weather"
+@using System.Globalization;
+@inject HttpClient Client;
+<h3>Weather</h3>
+
+<div class="input-group mb-3 mt-3">
+    <input class="form-control" type="text" @bind=city placeholder="City name" />
+    <div>
+        <button class="btn btn-outline-secondary" @onclick=GetWeather>Search</button>
+    </div>
+</div>
+@if (weatherData != null)
+{
+    <div class="text-center">
+        <p class="display-5">@city</p>
+        <p class="display-1">@weatherData.current.temperature_2m ºC</p>
+        <p class="display-6">@WeatherCode.Convert(@weatherData.daily.weathercode[0]) </p>
+    </div>
+
+    <div class="card-group">
+        @for (int i = 0; i < weatherData.daily.time.Length; i++)
+        {
+            <WheatherApp.Components.WeatherCard Day="@weatherData.daily.time[i]"
+                                                min="@weatherData.daily.temperature_2m_min[i]"
+                                                max="@weatherData.daily.temperature_2m_max[i]"
+                                                summary="@WeatherCode.Convert(@weatherData.daily.weathercode[i])"></WheatherApp.Components.WeatherCard>
+        }
+
+    </div>
+}
+
+
+
+
+@code {
+    string city = "";
+    float latitud = 0;
+    float longitud = 0;
+    WeatherModel? weatherData;//puede encontrarse la ciudad o no
+    async Task GetWeather()
+    {
+        var cityData = await GetCityData();//conseguimos la latitud y longitud de la ciudad
+        latitud = cityData.results[0].lat;//tiene como decimal
+        longitud = cityData.results[0].lon;//tiene coma decimal
+        CultureInfo.DefaultThreadCurrentCulture = new CultureInfo("en-US");
+        weatherData = await Client.GetFromJsonAsync<WeatherModel>(Endpoint.GetWeatherEndPoint(latitud, longitud));
+        CultureInfo.DefaultThreadCurrentCulture = new CultureInfo("es-es");
+    }
+
+    async Task<CityData> GetCityData()
+    {
+        var cityData = await Client.GetFromJsonAsync<CityData>(Endpoint.getGeoApify(city));
+        return cityData;
+    }
+}
